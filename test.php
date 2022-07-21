@@ -163,28 +163,24 @@ class MyClass extends Request{
         }
     }
 
-    function getBinWidth($arr){
+    function getBinWidth($arr, $maxNoOfBins){
         $min =  min($arr);
         $max = max($arr);
         $diiference = $max - $min;
-        $mean = array_sum($arr)/count($arr);
-        $distance = [];
 
-        for($i=0;$i<count($arr);$i++){
-            $distance[$i] = abs($mean - $arr[$i]);
-        }
-        $binWidth = array_sum($distance)/count($distance);
+        return array(ceil($diiference/$maxNoOfBins),$min);
 
-        return array($diiference, ceil($binWidth), $min);
+        
     }
 
     //Histogram data (frequency of response time occurance)
-    function getHistogram(){
+    function getHistogram($maxNoOfBins){
         $timeValues = $this->getOnlyValues();
-        $differenceMaxMin = $this->getBinWidth($timeValues)[0];
-        $binWidth = $this->getBinWidth($timeValues)[1];
-        $min = $this->getBinWidth($timeValues)[2];
-        $noOfBins = ceil($differenceMaxMin/$binWidth);
+        // $differenceMaxMin = $this->getBinWidth($timeValues)[0];
+        $binWidth = $this->getBinWidth($timeValues, $maxNoOfBins)[0];
+        $min = $this->getBinWidth($timeValues, $maxNoOfBins)[1];
+        // $noOfBins = ceil($differenceMaxMin/$binWidth);
+        $noOfBins = $maxNoOfBins;
 
         $ranges = [];
         $rangeLimit = 0;
@@ -198,9 +194,7 @@ class MyClass extends Request{
         }
         echo "<br><br>";
         
-        // echo $ranges[0][0]."<br>";
-        // echo $binWidth."<br>";
-        // echo $ranges[0][1]."<br><br>";
+        // initializing $frequency
         $frequency[0] = 0;
 
         $sortTimeValues = $timeValues;
@@ -212,7 +206,9 @@ class MyClass extends Request{
           echo $sortTimeValues[$x];
           echo "<br>";
         }
+
         echo "<br>";
+
         $j=0; 
         $countContinue=0;
         // getting frequency for each bin 
@@ -221,7 +217,6 @@ class MyClass extends Request{
                 if($ranges[$k][0] <= $sortTimeValues[$i]  &&  $ranges[$k][1] >= $sortTimeValues[$i]){
                     echo "Value (IF): ".$sortTimeValues[$i]."<br>";
                     $frequency[$j] = $frequency[$j]+1;
-                    // echo "Frequency: ".$frequency[$j];
                     $countContinue = 0;  
                 }
                 else{ 
@@ -229,13 +224,10 @@ class MyClass extends Request{
                         if($ranges[$k][0] <= $sortTimeValues[$i]  &&  $ranges[$k][1] >= $sortTimeValues[$i]){
                             echo "<br> Value (ElseIF): ".$sortTimeValues[$i];
                             $frequency[$j] = $frequency[$j]+1;
-                            // echo "Frequency: ".$frequency[$j];
                             $countContinue = 0;  
                         }
                     }
-                    
                     $countContinue += 1;
-                    continue;
                 }
             }
             $j+=1;
@@ -243,33 +235,46 @@ class MyClass extends Request{
             echo "<br>";
             echo "Frequency: ".$frequency[$k]."<br><br>";
         }
-        echo "<br><br>";
-        echo $frequency[0]."<br>";
-        echo $frequency[1]."<br>";
-        echo $frequency[2]."<br><br>";
-
 
 
         // getting all range values
         for($i=0;$i<$noOfBins;$i++){
-            echo $rangeStart." --- ".$rangeStart+$binWidth.": ".$frequency[$i]."<br>";
-            $ranges[$i] = array($rangeStart, $rangeStart+$binWidth);
-            $rangeStart += $binWidth+1;
+            echo $ranges[$i][0]." --- ".$ranges[$i][1]." : ".$frequency[$i]."<br>";
         }
         echo "<br><br>";
-        
 
+
+        // Deleting the extra 0 at the end of $frequency, got from the loop
+        unset($frequency[array_key_last($frequency)]);
+
+
+        //If last frequency count is 0, delete the range and frequency
+        $loopCount = 0;
+        while($loopCount<count($frequency)){
+            if(end($frequency)== 0){
+                unset($ranges[array_key_last($ranges)]);
+                unset($frequency[array_key_last($frequency)]);
+                echo "Deleting<br>";
+            }
+            $loopCount +=1;
+        }
+
+
+        // building 2-d associative array for returning the range start time(0), range end time(1) and frequency(2)
+        for($i=0;$i<count($frequency);$i++){
+            $histogramData[$i][0] = $ranges[$i][0];
+            $histogramData[$i][1] = $ranges[$i][1];
+            $histogramData[$i][2] = $frequency[$i];
+
+            echo $histogramData[$i][0]."    ";
+            echo $histogramData[$i][1]."    ";
+            echo $histogramData[$i][2]."<br>";
+        }
+
+        // $histogramData = [position][start,end,frequency]
+        return $histogramData;
 
     }
-
-    // No. of Bins(k) = ceil((max(x)-min(x))/bin-width)
-    // $resTimes = [10,2,5,7,5,20]
-    // binWidth = 5
-    // 2 - 7 : 4
-    // 8 - 13 : 1
-    // 14 -19 : 0
-    // 20 - 25: 1
-
 
 }
 
@@ -297,7 +302,7 @@ $myClass->getResponseData($uri1[0]['value']);
 echo "<br><br><br>";
 // $myClass->getOnlyNames();
 // $myClass->getIndividualStd();
-$myClass->getHistogram();
+$myClass->getHistogram(5);
 
 // echo count($uri);
 
