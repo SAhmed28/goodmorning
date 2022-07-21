@@ -163,6 +163,29 @@ class MyClass extends Request{
         }
     }
 
+    function getAllHistogram($maxNoOfBins){
+        $meanIndividual = [];
+        $allNames = $this->getOnlyNames();
+        $allValues = $this->getOnlyValues();
+
+        //arrange uri's with the response time, uri1 => [12, 15, 53] / uri2 => [112, 15, 53]
+        for($i=0; $i<count($allNames); $i++){
+            if(array_key_exists($allNames[$i],$meanIndividual)){
+                $temp = $meanIndividual[$allNames[$i]];
+                array_push($temp, $allValues[$i]);
+                $meanIndividual[$allNames[$i]] = $temp;
+            }
+            else{
+                $meanIndividual[$allNames[$i]] = array($allValues[$i]);
+            }
+        }
+        foreach($meanIndividual as $key => $value){
+            // $meanIndividual[$key] = array_sum($value)/count($value);
+            $this->getHistogram($maxNoOfBins,$value);
+        }
+
+    }
+
     function getBinWidth($arr, $maxNoOfBins){
         $min =  min($arr);
         $max = max($arr);
@@ -174,8 +197,8 @@ class MyClass extends Request{
     }
 
     //Histogram data (frequency of response time occurance)
-    function getHistogram($maxNoOfBins){
-        $timeValues = $this->getOnlyValues();
+    function getHistogram($maxNoOfBins, $individualArr){
+        $timeValues = $individualArr;
         // $differenceMaxMin = $this->getBinWidth($timeValues)[0];
         $binWidth = $this->getBinWidth($timeValues, $maxNoOfBins)[0];
         $min = $this->getBinWidth($timeValues, $maxNoOfBins)[1];
@@ -250,12 +273,10 @@ class MyClass extends Request{
 
         //If last frequency count is 0, delete the range and frequency
         $loopCount = 0;
-        while($loopCount<count($frequency)){
-            if(end($frequency)== 0){
-                unset($ranges[array_key_last($ranges)]);
-                unset($frequency[array_key_last($frequency)]);
-                echo "Deleting<br>";
-            }
+        while(end($frequency)== 0){
+            unset($ranges[array_key_last($ranges)]);
+            unset($frequency[array_key_last($frequency)]);
+            echo "Deleting<br>";
             $loopCount +=1;
         }
 
@@ -302,7 +323,7 @@ $myClass->getResponseData($uri1[0]['value']);
 echo "<br><br><br>";
 // $myClass->getOnlyNames();
 // $myClass->getIndividualStd();
-$myClass->getHistogram(5);
+$myClass->getAllHistogram(5);
 
 // echo count($uri);
 
